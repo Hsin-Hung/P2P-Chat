@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <iostream>
 #include "p2p.h"
+#include "chat.h"
 
 #define PORT 8080
 #define SERVER_PORT 12345
@@ -24,7 +25,7 @@ int readfd;
 int writefd;
 struct pollfd fds[200];
 int pipefd[2];
-int nfds{3};
+int nfds{2};
 void *p2p_server_init(int port)
 {
     int len, rc, on = 1;
@@ -137,10 +138,10 @@ void *p2p_server_init(int port)
         /***********************************************************/
         /* Call poll() and wait 3 minutes for it to complete.      */
         /***********************************************************/
-        // printf("Waiting on poll()...\n");
-        // std::cout << "nfds: " << nfds << std::endl;
+        printf("Waiting on poll()...\n");
+        std::cout << "nfds: " << nfds << std::endl;
         rc = poll(fds, nfds, timeout);
-        // std::cout << "poll triggered " << std::endl;
+        std::cout << "poll triggered " << std::endl;
 
         /***********************************************************/
         /* Check to see if the poll call failed.                   */
@@ -190,6 +191,7 @@ void *p2p_server_init(int port)
             {
                 char c;
                 read(fds[i].fd, &c, 1);
+                std::cout << "trigger pipe " << std::endl;
                 continue;
             }
 
@@ -229,7 +231,7 @@ void *p2p_server_init(int port)
                     /* Add the new incoming connection to the            */
                     /* pollfd structure                                  */
                     /*****************************************************/
-                    // printf("  New incoming connection - %d\n", new_sd);
+                    printf("  New incoming connection - %d\n", new_sd);
                     fds[nfds].fd = new_sd;
                     fds[nfds].events = POLLIN;
                     nfds++;
@@ -248,7 +250,7 @@ void *p2p_server_init(int port)
 
             else
             {
-                // printf("  Descriptor %d is readable\n", fds[i].fd);
+                printf("  Descriptor %d is readable\n", fds[i].fd);
                 close_conn = FALSE;
                 /*******************************************************/
                 /* Receive all incoming data on this socket            */
@@ -306,18 +308,9 @@ void *p2p_server_init(int port)
                     /* Data was received                                 */
                     /*****************************************************/
                     len = rc;
-                    std::cout << "They: " << buffer << std::endl;
 
-                    /*****************************************************/
-                    /* Echo the data back to the client                  */
-                    /*****************************************************/
-                    // rc = send(fds[i].fd, buffer, len, 0);
-                    // if (rc < 0)
-                    // {
-                    //     perror("  send() failed");
-                    //     close_conn = TRUE;
-                    //     break;
-                    // }
+                    chat.add_message(std::to_string(fds[i].fd), buffer);
+                    break;
 
                 } while (TRUE);
 
@@ -401,7 +394,10 @@ int p2p_connect(std::string peer, int port)
     fds[nfds].events = POLLIN;
     nfds++;
     char c = '\0';
-    write(pipefd[1], &c, 1);
+    if (write(pipefd[1], &c, 1) < 0)
+    {
+        std::cout << "write fail" << std::endl;
+    }
     return 0;
 }
 
@@ -410,19 +406,17 @@ void broadcast(std::string msg)
     char char_array[msg.size() + 1];
     strcpy(char_array, msg.c_str());
 
-    // std::cout << char_array << " with size " << strlen(char_array) << std::endl;
     int len = htonl(strlen(char_array));
 
-    for (int i = 3; i < nfds; i++)
+    for (int i = 2; i < nfds; i++)
     {
-        // std::cout << "send len: " << len << " with size: " << sizeof(len) << std::endl;
+        std::cout << "broadcast to " << fds[i].fd << std::endl;
         if (!send_all(fds[i].fd, &len, sizeof(len)))
         {
             perror("  send msg size failed");
             break;
         }
 
-        // std::cout << "send msg: " << char_array << " with size: " << strlen(char_array) << std::endl;
         if (!send_all(fds[i].fd, char_array, strlen(char_array)))
         {
             perror("  send msg failed");

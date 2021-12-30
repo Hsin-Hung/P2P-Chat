@@ -5,8 +5,9 @@ BIN     := bin
 SRC     := src
 INCLUDE := include
 LIBRARIES   := -stdlib=libc++
-EXECUTABLE  := main
-
+PEER  := peer
+SERVER := server
+EXECUTABLE := peer server
 
 all: $(BIN)/$(EXECUTABLE)
 
@@ -15,9 +16,13 @@ run: clean all
 	@echo "🚀 Executing..."
 	./$(BIN)/$(EXECUTABLE)
 
-$(BIN)/$(EXECUTABLE): $(SRC)/*.cpp
-	@echo "🚧 Building..."
-	$(CXX) $(CXX_FLAGS) -I$(SRC) $(LIBRARIES) -g $^ -o $@
+peer: $(SRC)/peer/*.cpp
+	@echo "🚧 Building peer..."
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer $(LIBRARIES) -g $^ -o bin/$@
+
+server: $(SRC)/server/*.cpp
+	@echo "🚧 Building server..."
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/source $(LIBRARIES) -g $^ -o bin/$@
 
 clean:
 	@echo "🧹 Clearing..."
