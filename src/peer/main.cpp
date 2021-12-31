@@ -1,16 +1,22 @@
 #include "../../include/httplib.h"
 #include "../../include/json.hpp"
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <iostream>
 #include <sys/socket.h>
 #include <vector>
 #include <string>
-#include<ios>    
-#include<limits>
+#include <ios>
+#include <limits>
 #include "p2p.h"
 #include "../server/peer.h"
 #include "../server/group.h"
 #include "chat.h"
+
+std::mutex mymutex;
+std::condition_variable mycond;
+bool flag = false;
 
 void *http_server_init(int port)
 {
@@ -21,7 +27,7 @@ void *http_server_init(int port)
              { 
 
         if (req.has_param("peers")){
-
+            std::unique_lock<std::mutex> lock(mymutex);
             auto peers = req.get_param_value("peers");
             nlohmann::json j = nlohmann::json::parse(peers);
             std::vector<Peer> conn_peers = j.get<std::vector<Peer>>();
@@ -31,6 +37,13 @@ void *http_server_init(int port)
             }
 
         } 
+
+        {
+            std::lock_guard<std::mutex> lock(mymutex);
+            flag = true;
+            std::cout << "notify ..." << std::endl;
+            mycond.notify_one();
+        }
                  
         res.set_content("connect!", "application/json"); });
 
@@ -70,7 +83,7 @@ int main(int argc, char **argv)
         int cmd;
         nlohmann::json j = nlohmann::json::parse(res->body);
         std::vector<Group> show_groups = j["groups"];
-        
+
         std::cout << "Enter a group number to join or 0 to start a group: ";
 
         for (int i = 0; i < show_groups.size(); i++)
@@ -79,7 +92,7 @@ int main(int argc, char **argv)
         }
 
         std::cin >> cmd;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (cmd == 0)
         {
 
@@ -94,14 +107,21 @@ int main(int argc, char **argv)
         }
         else if (cmd >= 1 && cmd <= show_groups.size())
         {
-            
+
             Group join_group = show_groups[cmd - 1];
             params.emplace("group_id", std::to_string(join_group.id));
             cli.Post("/join", params);
         }
     }
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+
+    std::unique_lock<std::mutex> lock(mymutex);
+    std::cout << "waiting ..." << std::endl;
+    mycond.wait_for(lock,
+                    std::chrono::seconds(1000),
+                    []()
+                    { return flag; });
     std::cout << "Start Chatting ..." << std::endl;
+
     while (1)
     {
         std::getline(std::cin, msg);
