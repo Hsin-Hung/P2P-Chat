@@ -5,39 +5,29 @@
 #include <sys/socket.h>
 #include <vector>
 #include <string>
-#include <algorithm>
-#include <utility>
+#include<ios>    
+#include<limits>
 #include "p2p.h"
+#include "../server/peer.h"
+#include "../server/group.h"
 #include "chat.h"
 
-std::pair<std::string, int> get_ip_port(std::string ip_port){
-
-    std::string delimiter = ":";
-    size_t pos = ip_port.find(delimiter);
-    std::string token = ip_port.substr(0, pos);
-    ip_port.erase(0, pos + delimiter.length());
-
-    return std::make_pair(token, std::stoi(ip_port));
-}
-
-
-void *http_server_init(int port){
+void *http_server_init(int port)
+{
 
     httplib::Server svr;
 
     svr.Post("/p2p", [](const httplib::Request &req, httplib::Response &res)
-    { 
+             { 
 
         if (req.has_param("peers")){
 
             auto peers = req.get_param_value("peers");
             nlohmann::json j = nlohmann::json::parse(peers);
-            std::vector<std::string> ips = j;
-            std::pair<std::string, int> ip_port;
-            for(auto peer : ips){
-                ip_port = get_ip_port(peer);
-                std::cout << "connect to " << ip_port.first << ":" << ip_port.second << std::endl;
-                p2p_connect(ip_port.first, ip_port.second - 1);
+            std::vector<Peer> conn_peers = j.get<std::vector<Peer>>();
+            for(auto peer : conn_peers){
+                std::cout << "connect to " << peer.ip << ":" << peer.port << std::endl;
+                p2p_connect(peer.ip, peer.port - 1);
             }
 
         } 
@@ -46,14 +36,13 @@ void *http_server_init(int port){
 
     std::cout << "listen on port " << port << std::endl;
     svr.listen("0.0.0.0", port);
-
 }
 
 int main(int argc, char **argv)
 {
 
     int socket_port, http_port, valsend;
-    std::string msg;
+    std::string msg, name;
     if (argc >= 3)
     {
         socket_port = std::stoi(argv[1]);
@@ -63,21 +52,56 @@ int main(int argc, char **argv)
     std::thread http_server(http_server_init, http_port);
     http_server.detach();
     std::thread p2p_server(p2p_server_init, socket_port);
-    p2p_server.detach();  
+    p2p_server.detach();
+
+    std::cout << "Enter your name: " << std::endl;
+    std::cin >> name;
 
     httplib::Client cli("localhost", 8080);
     httplib::Params params;
-    std::string my_ip = "127.0.0.1:" + std::to_string(http_port);
+    std::string my_ip = "127.0.0.1";
     params.emplace("ip", my_ip);
-    auto res = cli.Post("/connect", params);
+    params.emplace("port", std::to_string(http_port));
+    params.emplace("name", name);
 
+    if (auto res = cli.Get("/connect"))
+    {
+        std::string cmd_str;
+        int cmd;
+        nlohmann::json j = nlohmann::json::parse(res->body);
+        std::vector<Group> show_groups = j["groups"];
+        
+        std::cout << "Enter a group number to join or 0 to start a group: ";
 
-    std::cout << "Join chat: ";
-    std::cin.ignore();
+        for (int i = 0; i < show_groups.size(); i++)
+        {
+            std::cout << i + 1 << ", " << show_groups[i] << std::endl;
+        }
 
-    res = cli.Get("/join");
+        std::cin >> cmd;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        if (cmd == 0)
+        {
 
-    std::cout << "start chat" << std::endl;
+            res = cli.Post("/startgroup", params);
+            j = nlohmann::json::parse(res->body);
+            int new_group_id = j["group_id"].get<int>();
+            std::cout << "new group with id: " << new_group_id << std::endl;
+            std::cout << "press any button to init chat: ";
+            std::cin.ignore();
+            params.emplace("group_id", std::to_string(new_group_id));
+            cli.Post("/init", params);
+        }
+        else if (cmd >= 1 && cmd <= show_groups.size())
+        {
+            
+            Group join_group = show_groups[cmd - 1];
+            params.emplace("group_id", std::to_string(join_group.id));
+            cli.Post("/join", params);
+        }
+    }
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+    std::cout << "Start Chatting ..." << std::endl;
     while (1)
     {
         std::getline(std::cin, msg);

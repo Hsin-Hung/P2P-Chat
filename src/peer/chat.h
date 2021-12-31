@@ -1,3 +1,6 @@
+#ifndef _CHAT_H_
+#define _CHAT_H_
+#include <utility>
 #include <vector>
 #include <string>
 
@@ -12,3 +15,4 @@ public:
 
 
 extern Chat chat;
+#endif

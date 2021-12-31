@@ -16,7 +16,7 @@ run: clean all
 	@echo "🚀 Executing..."
 	./$(BIN)/$(EXECUTABLE)
 
-peer: $(SRC)/peer/*.cpp
+peer: $(SRC)/peer/*.cpp $(SRC)/server/peer.cpp $(SRC)/server/group.cpp
 	@echo "🚧 Building peer..."
 	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer $(LIBRARIES) -g $^ -o bin/$@
 

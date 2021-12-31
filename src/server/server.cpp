@@ -1,10 +1,11 @@
 #include "../../include/httplib.h"
 #include "../../include/json.hpp"
+#include "group.h"
 #include <string>
 #include <vector>
+#include <iostream>
 #include <utility>
 
-std::vector<std::string> peers;
 bool join_flag{false};
 
 std::pair<std::string, int> get_ip_port(std::string ip_port)
@@ -21,42 +22,72 @@ std::pair<std::string, int> get_ip_port(std::string ip_port)
 int main()
 {
     httplib::Server svr;
-    svr.Post("/connect", [](const httplib::Request &req, httplib::Response &res)
+    svr.Get("/connect", [](const httplib::Request &req, httplib::Response &res)
              { 
-
-                 if (req.has_param("ip")){
-
-                    auto ip = req.get_param_value("ip");
-                    std::cout << ip << " connected" << std::endl;
-                    peers.push_back(ip);
-
-                 } 
-                 
-                 res.set_content("connect!", "application/json"); });
-
-    svr.Get("/join", [](const httplib::Request &req, httplib::Response &res)
-            { 
-
-                if(!join_flag){
-                    join_flag = true;
-                std::cout << "join" << std::endl;
+                std::cout << "connected" << std::endl;
                 nlohmann::json j;
-                int n = peers.size();
-                for(int i = 0; i < n ; i++){
-                    std::pair<std::string, int> ip_port = get_ip_port(peers[0]);
-                    std::cout << ip_port.first << " " << ip_port.second << std::endl;
-                    if (peers.size() > 0) {
-                        peers.erase(peers.begin());
-                    }
-                    j = peers;
-                    httplib::Client cli(ip_port.first, ip_port.second);
-                    httplib::Params params;
-                    params.emplace("peers", j.dump());
-                    cli.Post("/p2p", params);
-                }
-                }
+                j["groups"] = groups;
+                std::cout << j.dump() << std::endl;
+                res.set_content(j.dump(), "application/json"); });
 
-                 res.set_content("join!", "application/json"); });
+    svr.Post("/startgroup", [](const httplib::Request &req, httplib::Response &res)
+             {
+                 std::cout << "start group" << std::endl;
+                 if (req.has_param("ip") && req.has_param("port") && req.has_param("name"))
+                 {
+                     nlohmann::json j;
+                     auto ip = req.get_param_value("ip");
+                     auto port = req.get_param_value("port");
+                     auto name = req.get_param_value("name");
+
+                     Peer start_peer(name, ip, std::stoi(port));
+                     Group new_group(start_peer);
+                     groups.push_back(new_group);
+                     j["group_id"] = new_group.id;
+                    res.set_content(j.dump(), "application/json");
+                 } });
+
+    svr.Post("/init", [](const httplib::Request &req, httplib::Response &res)
+             {
+                 std::cout << "init" << std::endl;
+                 if (req.has_param("ip") && req.has_param("port") && req.has_param("name") && req.has_param("group_id"))
+                 {
+
+                     auto ip = req.get_param_value("ip");
+                     auto port = req.get_param_value("port");
+                     auto name = req.get_param_value("name");
+                     auto group_id = req.get_param_value("group_id");
+
+                     Peer init_peer(name, ip, std::stoi(port));
+                     Group *group = find_group(std::stoi(group_id));
+                     if (group->is_creator(init_peer))
+                     {
+                         std::cout << "init success" << std::endl;
+                        group->init();
+                        res.set_content("init fail", "application/json");
+                     }else{
+                        res.set_content("init successful", "application/json");
+                     }
+                 } });
+
+    svr.Post("/join", [](const httplib::Request &req, httplib::Response &res)
+            {
+
+                std::cout << "join" << std::endl;
+        if (req.has_param("ip") && req.has_param("port") && req.has_param("name") && req.has_param("group_id"))
+        {
+
+            auto ip = req.get_param_value("ip");
+            auto port = req.get_param_value("port");
+            auto name = req.get_param_value("name");
+            auto group_id = req.get_param_value("group_id");
+            std::cout << ip << " " << port << " " << name << " want to join " << group_id << std::endl;
+            Peer new_peer(name, ip, std::stoi(port));
+            Group *group = find_group(std::stoi(group_id));
+            group->join_group(new_peer);
+        }
+
+        res.set_content("join!", "application/json"); });
 
     svr.listen("0.0.0.0", 8080);
     return 0;
