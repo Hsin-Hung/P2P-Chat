@@ -3,7 +3,7 @@
 bool Peer::operator==(const Peer &peer) const
 {
 
-    return peer.name == name && peer.ip == ip && peer.port == port;
+    return peer.ip == ip && peer.port == port;
 }
 bool Peer::operator!=(const Peer &peer) const
 {

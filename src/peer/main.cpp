@@ -12,44 +12,8 @@
 #include "p2p.h"
 #include "../server/peer.h"
 #include "../server/group.h"
-#include "chat.h"
-
-std::mutex mymutex;
-std::condition_variable mycond;
-bool flag = false;
-
-void *http_server_init(int port)
-{
-
-    httplib::Server svr;
-
-    svr.Post("/p2p", [](const httplib::Request &req, httplib::Response &res)
-             { 
-
-        if (req.has_param("peers")){
-            std::unique_lock<std::mutex> lock(mymutex);
-            auto peers = req.get_param_value("peers");
-            nlohmann::json j = nlohmann::json::parse(peers);
-            std::vector<Peer> conn_peers = j.get<std::vector<Peer>>();
-            for(auto peer : conn_peers){
-                std::cout << "connect to " << peer.ip << ":" << peer.port << std::endl;
-                p2p_connect(peer.ip, peer.port - 1);
-            }
-
-        } 
-
-        {
-            std::lock_guard<std::mutex> lock(mymutex);
-            flag = true;
-            std::cout << "notify ..." << std::endl;
-            mycond.notify_one();
-        }
-                 
-        res.set_content("connect!", "application/json"); });
-
-    std::cout << "listen on port " << port << std::endl;
-    svr.listen("0.0.0.0", port);
-}
+#include "message.h"
+#include "http.h"
 
 int main(int argc, char **argv)
 {
@@ -72,61 +36,108 @@ int main(int argc, char **argv)
 
     httplib::Client cli("localhost", 8080);
     httplib::Params params;
-    std::string my_ip = "127.0.0.1";
-    params.emplace("ip", my_ip);
     params.emplace("port", std::to_string(http_port));
     params.emplace("name", name);
 
-    if (auto res = cli.Get("/connect"))
+    int cmd_complete{0};
+
+    while (!cmd_complete)
     {
-        std::string cmd_str;
-        int cmd;
-        nlohmann::json j = nlohmann::json::parse(res->body);
-        std::vector<Group> show_groups = j["groups"];
-
-        std::cout << "Enter a group number to join or 0 to start a group: ";
-
-        for (int i = 0; i < show_groups.size(); i++)
+        if (auto res = cli.Get("/connect"))
         {
-            std::cout << i + 1 << ", " << show_groups[i] << std::endl;
+            if (res->status == 200)
+            {
+                std::string cmd;
+                nlohmann::json j = nlohmann::json::parse(res->body);
+                std::vector<Group> show_groups = j["groups"];
+
+                std::cout << "Enter a group number to join, s to start a group, r to refresh list: \n";
+
+                for (int i = 0; i < show_groups.size(); i++)
+                {
+                    std::cout << i << ": " << show_groups[i] << std::endl;
+                }
+
+                std::cin >> cmd;
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (cmd == "s")
+                {
+
+                    res = cli.Post("/startgroup", params);
+                    j = nlohmann::json::parse(res->body);
+                    std::string new_group_id = j["group_id"];
+                    std::cout << "new group with id: " << new_group_id << std::endl;
+                    std::cout << "press any button to init chat: ";
+                    std::cin.ignore();
+                    params.emplace("group_id", new_group_id);
+                    cli.Post("/init", params);
+                    cmd_complete = 1;
+                }
+                else if (cmd == "r")
+                {
+                    continue;
+                }
+                else
+                {
+                    int group_index;
+                    try
+                    {
+                        group_index = std::stoi(cmd);
+                        if (group_index >= 0 && group_index < show_groups.size())
+                        {
+
+                            Group join_group = show_groups[group_index];
+                            params.emplace("group_id", join_group.id);
+                            cli.Post("/join", params);
+                            cmd_complete = 1;
+                        }
+                        else
+                        {
+                            std::cout << "no such group!" << std::endl;
+                        }
+                    }
+                    catch (std::invalid_argument &e)
+                    {
+                        // if no conversion could be performed
+                        std::cout << "no conversion could be performed" << std::endl;
+                    }
+                    catch (std::out_of_range &e)
+                    {
+                        // if the converted value would fall out of the range of the result type
+                        // or if the underlying function (std::strtol or std::strtoull) sets errno
+                        // to ERANGE.
+                        std::cout << "no conversion could be performed" << std::endl;
+                    }
+                }
+            }
         }
-
-        std::cin >> cmd;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        if (cmd == 0)
+        else
         {
-
-            res = cli.Post("/startgroup", params);
-            j = nlohmann::json::parse(res->body);
-            int new_group_id = j["group_id"].get<int>();
-            std::cout << "new group with id: " << new_group_id << std::endl;
-            std::cout << "press any button to init chat: ";
-            std::cin.ignore();
-            params.emplace("group_id", std::to_string(new_group_id));
-            cli.Post("/init", params);
-        }
-        else if (cmd >= 1 && cmd <= show_groups.size())
-        {
-
-            Group join_group = show_groups[cmd - 1];
-            params.emplace("group_id", std::to_string(join_group.id));
-            cli.Post("/join", params);
+            auto err = res.error();
         }
     }
 
-    std::unique_lock<std::mutex> lock(mymutex);
+    std::unique_lock<std::mutex> lock(http_mutex);
     std::cout << "waiting ..." << std::endl;
-    mycond.wait_for(lock,
-                    std::chrono::seconds(1000),
-                    []()
-                    { return flag; });
+    http_cond.wait_for(lock,
+                       std::chrono::seconds(1000),
+                       []()
+                       { return flag; });
     std::cout << "Start Chatting ..." << std::endl;
 
     while (1)
     {
         std::getline(std::cin, msg);
-        broadcast(msg);
-        chat.add_message("Me", msg);
+        if (broadcast(msg))
+        {
+
+            add_message("Me", msg);
+        }
+        else
+        {
+
+            std::cout << "broadcast incomplete !" << std::endl;
+        }
     }
 
     return 0;

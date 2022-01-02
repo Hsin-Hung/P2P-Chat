@@ -12,8 +12,9 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <iostream>
+#include <unordered_map>
 #include "p2p.h"
-#include "chat.h"
+#include "message.h"
 
 #define PORT 8080
 #define SERVER_PORT 12345
@@ -21,8 +22,6 @@
 #define TRUE 1
 #define FALSE 0
 
-int readfd;
-int writefd;
 struct pollfd fds[200];
 int pipefd[2];
 int nfds{2};
@@ -138,7 +137,7 @@ void *p2p_server_init(int port)
         /***********************************************************/
         /* Call poll() and wait 3 minutes for it to complete.      */
         /***********************************************************/
-        // printf("Waiting on poll()...\n");
+        printf("Waiting on poll()...\n");
         // std::cout << "nfds: " << nfds << std::endl;
         rc = poll(fds, nfds, timeout);
         // std::cout << "poll triggered " << std::endl;
@@ -182,8 +181,10 @@ void *p2p_server_init(int port)
             /*********************************************************/
             if (fds[i].revents != POLLIN)
             {
-                printf("  Error! revents = %d\n", fds[i].revents);
-                end_server = TRUE;
+                // printf("  Error! revents = %d\n", fds[i].revents);
+                std::cout << fds[i].fd << " leaves the chat !" << std::endl;
+                fds[i].fd = -1;
+                // end_server = TRUE;
                 break;
             }
 
@@ -235,7 +236,6 @@ void *p2p_server_init(int port)
                     fds[nfds].fd = new_sd;
                     fds[nfds].events = POLLIN;
                     nfds++;
-
                     /*****************************************************/
                     /* Loop back up and accept another incoming          */
                     /* connection                                        */
@@ -309,7 +309,7 @@ void *p2p_server_init(int port)
                     /*****************************************************/
                     len = rc;
 
-                    chat.add_message(std::to_string(fds[i].fd), buffer);
+                    add_message(std::to_string(fds[i].fd), buffer);
                     break;
 
                 } while (TRUE);
@@ -365,14 +365,14 @@ void *p2p_server_init(int port)
             close(fds[i].fd);
     }
 }
-int p2p_connect(std::string peer, int port)
+bool p2p_connect(std::string name, std::string peer, int port)
 {
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Socket creation error \n");
-        return -1;
+        return false;
     }
 
     serv_addr.sin_family = AF_INET;
@@ -382,13 +382,13 @@ int p2p_connect(std::string peer, int port)
     if (inet_pton(AF_INET, peer.c_str(), &serv_addr.sin_addr) <= 0)
     {
         printf("\nInvalid address/ Address not supported \n");
-        return -1;
+        return false;
     }
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         printf("\nConnection Failed \n");
-        return -1;
+        return false;
     }
     fds[nfds].fd = sock;
     fds[nfds].events = POLLIN;
@@ -397,11 +397,13 @@ int p2p_connect(std::string peer, int port)
     if (write(pipefd[1], &c, 1) < 0)
     {
         std::cout << "write fail" << std::endl;
+        return false;
     }
-    return 0;
+
+    return true;
 }
 
-void broadcast(std::string msg)
+bool broadcast(std::string msg)
 {
     char char_array[msg.size() + 1];
     strcpy(char_array, msg.c_str());
@@ -410,18 +412,21 @@ void broadcast(std::string msg)
 
     for (int i = 2; i < nfds; i++)
     {
+        if (fds[i].fd < 0)
+            continue;
         if (!send_all(fds[i].fd, &len, sizeof(len)))
         {
             perror("  send msg size failed");
-            break;
+            return false;
         }
 
         if (!send_all(fds[i].fd, char_array, strlen(char_array)))
         {
             perror("  send msg failed");
-            break;
+            return false;
         }
     }
+    return true;
 }
 
 bool recv_all(int socket, void *buffer, size_t length)
