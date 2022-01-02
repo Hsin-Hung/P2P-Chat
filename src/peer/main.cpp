@@ -19,11 +19,12 @@ int main(int argc, char **argv)
 {
 
     int socket_port, http_port, valsend;
-    std::string msg, name;
-    if (argc >= 3)
+    std::string msg, name, server_ip;
+    if (argc >= 4)
     {
-        socket_port = std::stoi(argv[1]);
-        http_port = std::stoi(argv[2]);
+        server_ip = argv[1];
+        socket_port = std::stoi(argv[2]);
+        http_port = std::stoi(argv[3]);
     }
 
     std::thread http_server(http_server_init, http_port);
@@ -34,7 +35,7 @@ int main(int argc, char **argv)
     std::cout << "Enter your name: " << std::endl;
     std::cin >> name;
 
-    httplib::Client cli("localhost", 8080);
+    httplib::Client cli(server_ip, 8080);
     httplib::Params params;
     params.emplace("port", std::to_string(http_port));
     params.emplace("name", name);

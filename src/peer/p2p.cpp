@@ -436,7 +436,7 @@ bool recv_all(int socket, void *buffer, size_t length)
     while (length > 0)
     {
         int i = recv(socket, ptr, length, 0);
-        if (i < 1)
+        if (i < 0)
             return false;
         ptr += i;
         length -= i;
@@ -452,7 +452,7 @@ bool send_all(int socket, void *buffer, size_t length)
     while (length > 0)
     {
         int i = send(socket, ptr, length, 0);
-        if (i < 1)
+        if (i < 0)
             return false;
         ptr += i;
         length -= i;
