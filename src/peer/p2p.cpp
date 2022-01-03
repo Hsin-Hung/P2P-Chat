@@ -183,7 +183,7 @@ void *p2p_server_init(int port)
             {
                 // printf("  Error! revents = %d\n", fds[i].revents);
                 std::cout << fds[i].fd << " leaves the chat !" << std::endl;
-                fds[i].fd = -1;
+                close_conn = TRUE;
                 // end_server = TRUE;
                 break;
             }
@@ -274,8 +274,12 @@ void *p2p_server_init(int port)
                         if (errno != EWOULDBLOCK)
                         {
                             perror("  recv msg size failed");
-                            close_conn = TRUE;
                         }
+                        else
+                        {
+                            std::cout << " peer disconnect " << std::endl;
+                        }
+                        close_conn = TRUE;
                         break;
                     }
 
@@ -288,8 +292,12 @@ void *p2p_server_init(int port)
                         if (errno != EWOULDBLOCK)
                         {
                             perror("  recv msg failed");
-                            close_conn = TRUE;
                         }
+                        else
+                        {
+                            std::cout << " peer disconnect " << std::endl;
+                        }
+                        close_conn = TRUE;
                         break;
                     }
 
@@ -436,8 +444,9 @@ bool recv_all(int socket, void *buffer, size_t length)
     while (length > 0)
     {
         int i = recv(socket, ptr, length, 0);
-        if (i < 0)
+        if (i < 1)
             return false;
+
         ptr += i;
         length -= i;
     }
@@ -452,8 +461,9 @@ bool send_all(int socket, void *buffer, size_t length)
     while (length > 0)
     {
         int i = send(socket, ptr, length, 0);
-        if (i < 0)
+        if (i < 1)
             return false;
+
         ptr += i;
         length -= i;
     }
