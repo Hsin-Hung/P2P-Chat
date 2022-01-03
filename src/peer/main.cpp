@@ -10,26 +10,29 @@
 #include <ios>
 #include <limits>
 #include "p2p.h"
-#include "../server/peer.h"
-#include "../server/group.h"
+#include "peer.h"
+#include "group.h"
 #include "message.h"
 #include "http.h"
+
+#define HTTP_SERVER_PORT 8080
+#define SOCKET_SERVER_PORT 8081
 
 int main(int argc, char **argv)
 {
 
     int socket_port, http_port, valsend;
     std::string msg, name, server_ip;
-    if (argc >= 4)
+    if (argc >= 2)
     {
         server_ip = argv[1];
-        socket_port = std::stoi(argv[2]);
-        http_port = std::stoi(argv[3]);
+        // socket_port = std::stoi(argv[2]);
+        // http_port = std::stoi(argv[3]);
     }
 
-    std::thread http_server(http_server_init, http_port);
+    std::thread http_server(http_server_init, HTTP_SERVER_PORT);
     http_server.detach();
-    std::thread p2p_server(p2p_server_init, socket_port);
+    std::thread p2p_server(p2p_server_init,  SOCKET_SERVER_PORT);
     p2p_server.detach();
 
     std::cout << "Enter your name: " << std::endl;
@@ -37,7 +40,7 @@ int main(int argc, char **argv)
 
     httplib::Client cli(server_ip, 8080);
     httplib::Params params;
-    params.emplace("port", std::to_string(http_port));
+    params.emplace("port", std::to_string(HTTP_SERVER_PORT));
     params.emplace("name", name);
 
     int cmd_complete{0};

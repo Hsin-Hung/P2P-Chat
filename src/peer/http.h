@@ -2,7 +2,7 @@
 #define _HTTP_H_
 #include <mutex>
 #include <condition_variable>
-#include "../server/group.h"
+#include "group.h"
 
 void *http_server_init(int port);
 extern std::mutex http_mutex;

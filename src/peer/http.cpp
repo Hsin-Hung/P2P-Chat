@@ -1,12 +1,11 @@
 #include "http.h"
 #include "p2p.h"
+#include "peer.h"
+#include "../../include/httplib.h"
+#include "../../include/json.hpp"
 #include <vector>
 #include <string>
 #include <iostream>
-#include "../../include/httplib.h"
-#include "../../include/json.hpp"
-#include "../server/peer.h"
-
 
 std::mutex http_mutex;
 std::condition_variable http_cond;
