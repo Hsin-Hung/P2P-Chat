@@ -1,4 +1,4 @@
-CXX       := clang++
+CXX       := g++
 CXX_FLAGS := -std=c++17 #-Wall -Wextra 
 
 BIN     := bin
@@ -18,11 +18,11 @@ run: clean all
 
 peer: $(SRC)/peer/*.cpp $(SRC)/server/peer.cpp $(SRC)/server/group.cpp
 	@echo "🚧 Building peer..."
-	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer $(LIBRARIES) -g $^ -o bin/$@
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer -g $^ -o bin/$@ -lpthread
 
 server: $(SRC)/server/*.cpp
 	@echo "🚧 Building server..."
-	$(CXX) $(CXX_FLAGS) -I$(SRC)/source $(LIBRARIES) -g $^ -o bin/$@
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/source -g $^ -o bin/$@ -lpthread
 
 clean:
 	@echo "🧹 Clearing..."

@@ -140,7 +140,7 @@ void *p2p_server_init(int port)
         printf("Waiting on poll()...\n");
         // std::cout << "nfds: " << nfds << std::endl;
         rc = poll(fds, nfds, timeout);
-        // std::cout << "poll triggered " << std::endl;
+        std::cout << "poll triggered " << std::endl;
 
         /***********************************************************/
         /* Check to see if the poll call failed.                   */
@@ -192,7 +192,7 @@ void *p2p_server_init(int port)
             {
                 char c;
                 read(fds[i].fd, &c, 1);
-                // std::cout << "trigger pipe " << std::endl;
+                std::cout << "new conn trigger pipe " << std::endl;
                 continue;
             }
 
@@ -232,7 +232,7 @@ void *p2p_server_init(int port)
                     /* Add the new incoming connection to the            */
                     /* pollfd structure                                  */
                     /*****************************************************/
-                    // printf("  New incoming connection - %d\n", new_sd);
+                    printf("  New incoming connection - %d\n", new_sd);
                     fds[nfds].fd = new_sd;
                     fds[nfds].events = POLLIN;
                     nfds++;
@@ -250,7 +250,7 @@ void *p2p_server_init(int port)
 
             else
             {
-                // printf("  Descriptor %d is readable\n", fds[i].fd);
+                printf("  Descriptor %d is readable\n", fds[i].fd);
                 close_conn = FALSE;
                 /*******************************************************/
                 /* Receive all incoming data on this socket            */
@@ -260,7 +260,7 @@ void *p2p_server_init(int port)
                 do
                 {
                     char *buffer;
-                    int buflen{0};
+                    uint32_t buflen{0};
                     /*****************************************************/
                     /* Receive data on this connection until the         */
                     /* recv fails with EWOULDBLOCK. If any other         */
@@ -408,7 +408,7 @@ bool broadcast(std::string msg)
     char char_array[msg.size() + 1];
     strcpy(char_array, msg.c_str());
 
-    int len = htonl(strlen(char_array));
+    uint32_t len = htonl(strlen(char_array));
 
     for (int i = 2; i < nfds; i++)
     {
