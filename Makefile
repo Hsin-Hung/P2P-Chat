@@ -9,20 +9,18 @@ PEER  := peer
 SERVER := server
 EXECUTABLE := peer server
 
-all: $(BIN)/$(EXECUTABLE)
+all: $(BIN) $(EXECUTABLE)
 
-run: clean all
-	clear
-	@echo "🚀 Executing..."
-	./$(BIN)/$(EXECUTABLE)
-
-peer: $(SRC)/peer/*.cpp $(SRC)/server/peer.cpp $(SRC)/server/group.cpp
+peer: $(SRC)/peer/*.cpp
 	@echo "🚧 Building peer..."
 	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer -g $^ -o bin/$@ -lpthread
 
 server: $(SRC)/server/*.cpp
 	@echo "🚧 Building server..."
 	$(CXX) $(CXX_FLAGS) -I$(SRC)/source -g $^ -o bin/$@ -lpthread
+
+bin:
+	mkdir bin
 
 clean:
 	@echo "🧹 Clearing..."
