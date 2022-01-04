@@ -1,8 +1,8 @@
 #ifndef _P2P_H_
 #define _P2P_H_
-
 #include <string>
 #include <sys/poll.h>
+#define SOCKET_SERVER_PORT 8333
 
 extern struct pollfd fds[200];
 extern int nfds;

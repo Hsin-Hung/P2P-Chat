@@ -6,6 +6,8 @@
 #include <iostream>
 #include <utility>
 
+#define HTTP_SERVER_PORT 8080
+
 bool join_flag{false};
 
 std::pair<std::string, int> get_ip_port(std::string ip_port)
@@ -130,6 +132,6 @@ int main()
                      res.set_content("Wrong params!", "text/plain");
                  } });
 
-    svr.listen("0.0.0.0", 8080);
+    svr.listen("0.0.0.0", HTTP_SERVER_PORT);
     return 0;
 }

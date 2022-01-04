@@ -16,9 +16,6 @@
 #include "p2p.h"
 #include "message.h"
 
-#define PORT 8080
-#define SERVER_PORT 12345
-
 #define TRUE 1
 #define FALSE 0
 
@@ -137,10 +134,10 @@ void *p2p_server_init(int port)
         /***********************************************************/
         /* Call poll() and wait 3 minutes for it to complete.      */
         /***********************************************************/
-        printf("Waiting on poll()...\n");
+        // printf("Waiting on poll()...\n");
         // std::cout << "nfds: " << nfds << std::endl;
         rc = poll(fds, nfds, timeout);
-        std::cout << "poll triggered " << std::endl;
+        // std::cout << "poll triggered " << std::endl;
 
         /***********************************************************/
         /* Check to see if the poll call failed.                   */
@@ -192,7 +189,7 @@ void *p2p_server_init(int port)
             {
                 char c;
                 read(fds[i].fd, &c, 1);
-                std::cout << "new conn trigger pipe " << std::endl;
+                // std::cout << "new conn trigger pipe " << std::endl;
                 continue;
             }
 
@@ -250,7 +247,7 @@ void *p2p_server_init(int port)
 
             else
             {
-                printf("  Descriptor %d is readable\n", fds[i].fd);
+                // printf("  Descriptor %d is readable\n", fds[i].fd);
                 close_conn = FALSE;
                 /*******************************************************/
                 /* Receive all incoming data on this socket            */
@@ -277,7 +274,7 @@ void *p2p_server_init(int port)
                         }
                         else
                         {
-                            std::cout << " peer disconnect " << std::endl;
+                            std::cout << " peer disconnect - " << fds[i].fd << std::endl;
                         }
                         close_conn = TRUE;
                         break;
@@ -295,7 +292,7 @@ void *p2p_server_init(int port)
                         }
                         else
                         {
-                            std::cout << " peer disconnect " << std::endl;
+                            std::cout << " peer disconnect - " << fds[i].fd << std::endl;
                         }
                         close_conn = TRUE;
                         break;

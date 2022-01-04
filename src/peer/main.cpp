@@ -15,8 +15,6 @@
 #include "message.h"
 #include "http.h"
 
-#define HTTP_SERVER_PORT 8080
-#define SOCKET_SERVER_PORT 8081
 
 int main(int argc, char **argv)
 {
