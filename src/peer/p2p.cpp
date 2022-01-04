@@ -180,6 +180,7 @@ void *p2p_server_init(int port)
             {
                 // printf("  Error! revents = %d\n", fds[i].revents);
                 std::cout << fds[i].fd << " leaves the chat !" << std::endl;
+                fds[i].fd = -1;
                 close_conn = TRUE;
                 // end_server = TRUE;
                 break;
@@ -256,7 +257,6 @@ void *p2p_server_init(int port)
 
                 do
                 {
-                    char *buffer;
                     uint32_t buflen{0};
                     /*****************************************************/
                     /* Receive data on this connection until the         */
@@ -281,9 +281,10 @@ void *p2p_server_init(int port)
                     }
 
                     buflen = ntohl(buflen);
-                    buffer = new char[buflen + 1];
+                    std::vector<char> buffer_vec(buflen + 1);
+                    std::string buffer;
 
-                    if (!recv_all(fds[i].fd, buffer, buflen))
+                    if (!recv_all(fds[i].fd, &buffer_vec[0], buflen))
                     {
 
                         if (errno != EWOULDBLOCK)
@@ -313,7 +314,7 @@ void *p2p_server_init(int port)
                     /* Data was received                                 */
                     /*****************************************************/
                     len = rc;
-
+                    buffer.append(buffer_vec.cbegin(), buffer_vec.cend());
                     add_message(std::to_string(fds[i].fd), buffer);
                     break;
 
@@ -436,7 +437,6 @@ bool broadcast(std::string msg)
 
 bool recv_all(int socket, void *buffer, size_t length)
 {
-
     char *ptr = (char *)buffer;
     while (length > 0)
     {
@@ -453,7 +453,6 @@ bool recv_all(int socket, void *buffer, size_t length)
 
 bool send_all(int socket, void *buffer, size_t length)
 {
-
     char *ptr = (char *)buffer;
     while (length > 0)
     {

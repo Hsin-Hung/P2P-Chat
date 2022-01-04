@@ -15,22 +15,34 @@
 #include "message.h"
 #include "http.h"
 
-
 int main(int argc, char **argv)
 {
 
     int socket_port, http_port, valsend;
     std::string msg, name, server_ip;
-    if (argc >= 2)
+    if (argc == 2)
     {
+        // cloud run
         server_ip = argv[1];
-        // socket_port = std::stoi(argv[2]);
-        // http_port = std::stoi(argv[3]);
+        http_port = 8080;
+        socket_port = 8333;
+    }
+    else if (argc == 3 && strcmp(argv[1], "-local") == 0 && std::atoi(argv[2]) > 0)
+    {
+        // local run
+        server_ip = "127.0.0.1";
+        http_port = 8080 + std::atoi(argv[2]) * 2;
+        socket_port = http_port - 1;
+    }
+    else
+    {
+        std::cout << "Wrong arguments !" << std::endl;
+        return 1;
     }
 
-    std::thread http_server(http_server_init, HTTP_SERVER_PORT);
+    std::thread http_server(http_server_init, http_port);
     http_server.detach();
-    std::thread p2p_server(p2p_server_init,  SOCKET_SERVER_PORT);
+    std::thread p2p_server(p2p_server_init, socket_port);
     p2p_server.detach();
 
     std::cout << "Enter your name: " << std::endl;
@@ -38,7 +50,7 @@ int main(int argc, char **argv)
 
     httplib::Client cli(server_ip, 8080);
     httplib::Params params;
-    params.emplace("port", std::to_string(HTTP_SERVER_PORT));
+    params.emplace("port", std::to_string(http_port));
     params.emplace("name", name);
 
     int cmd_complete{0};

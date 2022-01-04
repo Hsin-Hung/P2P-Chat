@@ -27,7 +27,7 @@ void *http_server_init(int port)
             std::vector<Peer> conn_peers = j["conn_peers"].get<std::vector<Peer>>();
             for(auto peer : conn_peers){
                 std::cout << "connecting to " << peer.name << " " << peer.ip << ":" << peer.port << std::endl;
-                if(p2p_connect(peer.name, peer.ip, SOCKET_SERVER_PORT)){
+                if(p2p_connect(peer.name, peer.ip, peer.port - 1)){
                     std::cout << peer.name << " joined the chat !" << std::endl;
                 }else{
                     std::cout << peer.name << " failed to joined the chat !" << std::endl;
