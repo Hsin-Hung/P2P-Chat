@@ -142,16 +142,8 @@ int main(int argc, char **argv)
     while (1)
     {
         std::getline(std::cin, msg);
-        if (broadcast(msg))
-        {
-
-            add_message("Me", msg);
-        }
-        else
-        {
-
-            std::cout << "broadcast incomplete !" << std::endl;
-        }
+        if(msg.compare("q") == 0)break;
+        broadcast(msg);
     }
 
     return 0;

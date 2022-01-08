@@ -13,7 +13,7 @@ all: $(BIN) $(EXECUTABLE)
 
 peer: $(SRC)/peer/*.cpp
 	@echo "🚧 Building peer..."
-	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer -g $^ -o bin/$@ -lpthread
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/peer -g $^ -o bin/$@ -lpthread -fcoroutines-ts
 
 server: $(SRC)/server/*.cpp
 	@echo "🚧 Building server..."
