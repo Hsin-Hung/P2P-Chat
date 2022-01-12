@@ -7,7 +7,7 @@ awaitable<void> listener(tcp::acceptor acceptor)
 
     for (;;)
     {
-        std::cout << "New Connection" << std::endl;
+        // std::cout << "New Connection" << std::endl;
         std::make_shared<chat_session>(
             co_await acceptor.async_accept(use_awaitable),
             room)
@@ -45,17 +45,17 @@ bool p2p_connect(std::string name, std::string peer, unsigned short port)
     try
     {
 
-        std::shared_ptr<boost::asio::io_context> io_context(new boost::asio::io_context);
+        boost::asio::io_context io_context;
         // socket creation
-
-        std::shared_ptr<tcp::socket> socket(new tcp::socket(*io_context));
 
         // connection
 
-        socket->connect(tcp::endpoint(boost::asio::ip::address::from_string(peer.c_str()), port));
+        std::shared_ptr<socket_handler> socket_hdl = std::make_shared<socket_handler>(tcp::socket(io_context));
+
+        socket_hdl->get_socket().connect(tcp::endpoint(boost::asio::ip::address::from_string(peer.c_str()), port));
 
         std::make_shared<chat_session>(
-            socket,
+            socket_hdl,
             room)
             ->start();
 
@@ -81,7 +81,6 @@ bool p2p_connect(std::string name, std::string peer, unsigned short port)
 }
 bool broadcast(std::string msg)
 {
-    std::cout << "broadcast" << std::endl;
     msg += "\n";
     room.deliver(msg);
 }

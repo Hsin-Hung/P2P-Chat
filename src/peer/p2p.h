@@ -43,6 +43,21 @@ using boost::asio::redirect_error;
 using boost::asio::use_awaitable;
 using boost::asio::ip::tcp;
 
+class socket_handler
+{
+tcp::socket socket;
+public:
+    socket_handler(tcp::socket socket) : socket(std::move(socket)) {}
+    ~socket_handler()
+    {
+        if (!socket.is_open())
+            socket.close();
+    }
+    tcp::socket &get_socket(){
+        return socket;
+    }
+
+};
 //----------------------------------------------------------------------
 
 class chat_participant
@@ -61,11 +76,10 @@ class chat_room
 public:
     void join(chat_participant_ptr participant)
     {
-        std::cout << "new part joined" << std::endl;
         participants_.insert(participant);
         // for (auto msg : recent_msgs_)
         //     participant->deliver(msg);
-        std::cout << "participant num: " << participants_.size() << std::endl;
+        // std::cout << "participant num: " << participants_.size() << std::endl;
     }
 
     void leave(chat_participant_ptr participant)
@@ -75,7 +89,6 @@ public:
 
     void deliver(const std::string &msg)
     {
-        std::cout << "broadcast msg to room" << std::endl;
         recent_msgs_.push_back(msg);
         while (recent_msgs_.size() > max_recent_msgs)
             recent_msgs_.pop_front();
@@ -101,22 +114,18 @@ class chat_session
 {
 public:
     chat_session(tcp::socket socket, chat_room &room)
-        : socket_(new tcp::socket(std::move(socket))),
+        : socket_(new socket_handler(std::move(socket))),
           room_(room)
     {
     }
 
-    chat_session(std::shared_ptr<tcp::socket> socket, chat_room &room) : socket_(socket),
+    chat_session(std::shared_ptr<socket_handler> socket_hdl, chat_room &room) : socket_(socket_hdl),
                                                                          room_(room)
     {
-
     }
     void start()
     {
 
-        std::cout << "chat session start " << std::endl;
-        std::cout << "start socket is open: " << socket_->is_open() << std::endl;
-        std::cout << "socket executor: " << socket_->get_executor() << std::endl;
         room_.join(shared_from_this());
 
         std::thread read_thread(&chat_session::reader, this);
@@ -139,15 +148,15 @@ private:
 
         try
         {
-            std::cout << "Reader" << std::endl;
             for (std::string read_msg;;)
-            {   
-                if(!socket_->is_open()){
+            {
+                if (!socket_->get_socket().is_open())
+                {
                     stop();
                     break;
                 }
 
-                std::size_t n = boost::asio::read_until(*socket_,
+                std::size_t n = boost::asio::read_until(socket_->get_socket(),
                                                         boost::asio::dynamic_buffer(read_msg, 1024), "\n");
                 std::cout << "read string: " << read_msg << std::endl;
                 read_msg.erase(0, n);
@@ -164,8 +173,7 @@ private:
     {
         try
         {
-            std::cout << "socket is open: " << socket_->is_open() << std::endl;
-            while (socket_->is_open())
+            while (socket_->get_socket().is_open())
             {
 
                 std::unique_lock<std::mutex> lock(session_mutex);
@@ -174,7 +182,7 @@ private:
                                       [&]()
                                       { return !write_msgs_.empty(); });
 
-                boost::asio::write(*socket_,
+                boost::asio::write(socket_->get_socket(),
                                    boost::asio::buffer(write_msgs_.front()));
                 write_msgs_.pop_front();
             }
@@ -189,10 +197,9 @@ private:
     void stop()
     {
         room_.leave(shared_from_this());
-        // socket_->close();
     }
 
-    std::shared_ptr<tcp::socket> socket_;
+    std::shared_ptr<socket_handler> socket_;
     chat_room &room_;
     std::deque<std::string> write_msgs_;
     std::mutex session_mutex;

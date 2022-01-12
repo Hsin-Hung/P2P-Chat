@@ -9,11 +9,18 @@
 #include <string>
 #include <ios>
 #include <limits>
+#include <signal.h>
 #include "p2p.h"
 #include "peer.h"
 #include "group.h"
 #include "message.h"
 #include "http.h"
+
+volatile sig_atomic_t stop;
+
+void inthand(int signum) {
+    stop = 1;
+}
 
 int main(int argc, char **argv)
 {
@@ -137,9 +144,11 @@ int main(int argc, char **argv)
                        std::chrono::seconds(1000),
                        []()
                        { return flag; });
-    std::cout << "Start Chatting ..." << std::endl;
+    std::cout << "Start Chatting (q to leave): " << std::endl;
 
-    while (1)
+    signal(SIGINT, inthand);
+
+    while (!stop)
     {
         std::getline(std::cin, msg);
         if(msg.compare("q") == 0)break;
