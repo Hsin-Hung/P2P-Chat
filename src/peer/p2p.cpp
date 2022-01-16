@@ -46,9 +46,6 @@ bool p2p_connect(std::string name, std::string peer, unsigned short port)
     {
 
         boost::asio::io_context io_context;
-        // socket creation
-
-        // connection
 
         std::shared_ptr<socket_handler> socket_hdl = std::make_shared<socket_handler>(tcp::socket(io_context));
 
@@ -58,18 +55,6 @@ bool p2p_connect(std::string name, std::string peer, unsigned short port)
             socket_hdl,
             room)
             ->start();
-
-        // const std::string msg = "Hello from Client!\n";
-        // boost::system::error_code error;
-        // boost::asio::write(*socket, boost::asio::buffer(msg), error);
-        // if (!error)
-        // {
-        //     std::cout << "Client sent hello message!" << std::endl;
-        // }
-        // else
-        // {
-        //     std::cout << "send failed: " << error.message() << std::endl;
-        // }
     }
     catch (boost::system::system_error &e)
     {
@@ -79,8 +64,8 @@ bool p2p_connect(std::string name, std::string peer, unsigned short port)
 
     return true;
 }
-bool broadcast(std::string msg)
+bool broadcast(std::string name, std::string msg)
 {
-    msg += "\n";
+    msg = name + ": " + msg + "\n";
     room.deliver(msg);
 }

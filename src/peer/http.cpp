@@ -50,6 +50,6 @@ void *http_server_init(int port)
             
         } });
 
-    std::cout << "listen on port " << port << std::endl;
+    // std::cout << "listen on port " << port << std::endl;
     svr.listen("0.0.0.0", port);
 }

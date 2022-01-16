@@ -17,7 +17,7 @@ peer: $(SRC)/peer/*.cpp
 
 server: $(SRC)/server/*.cpp
 	@echo "🚧 Building server..."
-	$(CXX) $(CXX_FLAGS) -I$(SRC)/source -g $^ -o bin/$@ -lpthread
+	$(CXX) $(CXX_FLAGS) -I$(SRC)/server -g $^ -o bin/$@ -lpthread
 
 bin:
 	mkdir bin

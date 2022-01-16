@@ -1,8 +1,6 @@
 #ifndef _P2P_H_
 #define _P2P_H_
-//
-// chat_server.cpp
-// ~~~~~~~~~~~~~~~
+
 //
 // Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
@@ -45,7 +43,8 @@ using boost::asio::ip::tcp;
 
 class socket_handler
 {
-tcp::socket socket;
+    tcp::socket socket;
+
 public:
     socket_handler(tcp::socket socket) : socket(std::move(socket)) {}
     ~socket_handler()
@@ -53,10 +52,10 @@ public:
         if (!socket.is_open())
             socket.close();
     }
-    tcp::socket &get_socket(){
+    tcp::socket &get_socket()
+    {
         return socket;
     }
-
 };
 //----------------------------------------------------------------------
 
@@ -77,9 +76,6 @@ public:
     void join(chat_participant_ptr participant)
     {
         participants_.insert(participant);
-        // for (auto msg : recent_msgs_)
-        //     participant->deliver(msg);
-        // std::cout << "participant num: " << participants_.size() << std::endl;
     }
 
     void leave(chat_participant_ptr participant)
@@ -112,15 +108,17 @@ class chat_session
     : public chat_participant,
       public std::enable_shared_from_this<chat_session>
 {
+    std::string name;
+
 public:
     chat_session(tcp::socket socket, chat_room &room)
-        : socket_(new socket_handler(std::move(socket))),
+        : socket_(std::make_shared<socket_handler>(std::move(socket))),
           room_(room)
     {
     }
 
     chat_session(std::shared_ptr<socket_handler> socket_hdl, chat_room &room) : socket_(socket_hdl),
-                                                                         room_(room)
+                                                                                room_(room)
     {
     }
     void start()
@@ -139,7 +137,20 @@ public:
         write_msgs_.push_back(msg);
         std::lock_guard<std::mutex> lock(session_mutex);
         session_cond.notify_one();
-        // timer_.cancel_one();
+    }
+
+    void parse_name(std::string msg)
+    {
+
+        std::string::size_type pos = msg.find(':');
+        if (pos != std::string::npos)
+        {
+            name = msg.substr(0, pos);
+        }
+        else
+        {
+            name = msg;
+        }
     }
 
 private:
@@ -158,13 +169,18 @@ private:
 
                 std::size_t n = boost::asio::read_until(socket_->get_socket(),
                                                         boost::asio::dynamic_buffer(read_msg, 1024), "\n");
-                std::cout << "read string: " << read_msg << std::endl;
+                std::cout << read_msg << std::endl;
+                if (name.empty())
+                {
+                    parse_name(read_msg);
+                }
                 read_msg.erase(0, n);
             }
         }
         catch (std::exception &)
         {
-            std::cout << "read exception" << std::endl;
+            // std::cout << "read exception" << std::endl;
+            std::cout << name << " has left the chat!" << std::endl;
             stop();
         }
     }
@@ -213,6 +229,6 @@ awaitable<void> listener(tcp::acceptor acceptor);
 
 void *p2p_server_init(unsigned short port);
 bool p2p_connect(std::string name, std::string peer, unsigned short port);
-bool broadcast(std::string msg);
+bool broadcast(std::string name, std::string msg);
 
 #endif
