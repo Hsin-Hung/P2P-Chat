@@ -1,8 +1,8 @@
-#include "group.h"
 #include <algorithm>
 #include <functional>
-#include "../../include/httplib.h"
-#include "../../include/json.hpp"
+#include "group.h"
+#include "httplib.h"
+#include "json.hpp"
 
 std::mutex group_id_mutex;
 std::atomic_int64_t next_id{0};

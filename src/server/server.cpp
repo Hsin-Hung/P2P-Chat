@@ -1,5 +1,5 @@
-#include "../../include/httplib.h"
-#include "../../include/json.hpp"
+#include "httplib.h"
+#include "json.hpp"
 #include "group.h"
 #include <string>
 #include <vector>

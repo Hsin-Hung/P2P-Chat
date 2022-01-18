@@ -1,6 +1,6 @@
-#include "groupInitializer.h"
 #include <iostream>
-#include "../../include/httplib.h"
+#include "groupInitializer.h"
+#include "httplib.h"
 #include "group.h"
 #include "http.h"
 #include "p2p.h"
@@ -22,6 +22,9 @@ void GroupInitializer::init()
     httplib::Params params;
     params.emplace("port", std::to_string(http_port));
     params.emplace("name", name);
+
+    signal(SIGINT, inthand);
+
     while (1)
     {
         if (auto res = cli.Get("/connect"))
@@ -113,8 +116,6 @@ void GroupInitializer::init()
                        { return flag; });
 
     std::cout << "Start Chatting (q to leave): " << std::endl;
-
-    signal(SIGINT, inthand);
 
     while (!stop)
     {

@@ -1,7 +1,7 @@
 #ifndef _PEER_H_
 #define _PEER_H_
 
-#include "../../include/json.hpp"
+#include "json.hpp"
 #include <string>
 
 class Peer

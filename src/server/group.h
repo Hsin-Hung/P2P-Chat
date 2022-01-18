@@ -9,7 +9,6 @@
 #include <array>
 #include "peer.h"
 
-
 class Group
 {
 public:

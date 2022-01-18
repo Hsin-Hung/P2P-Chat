@@ -4,7 +4,9 @@
 * A basic terminal p2p group chat implemented in C++. Each peer in a group will first contact a centralized server to retrieve the needed information to establish peer to peer connections. The peers will then establish direct connections with each others to start the group chat. 
 
 ## Build
-* `make all`
+* `mkdir build; cd build`
+* `cmake ..`
+* `cmake --build .`
 
 ## Run
 * cloud run

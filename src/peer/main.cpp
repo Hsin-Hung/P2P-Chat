@@ -1,9 +1,9 @@
-#include "../../include/httplib.h"
-#include "../../include/json.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
 #include <ios>
+#include "httplib.h"
+#include "json.hpp"
 #include "p2p.h"
 #include "peer.h"
 #include "group.h"
