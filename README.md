@@ -10,8 +10,8 @@
 
 ## Run
 * cloud run
-  * centralized server:  `Server` 
-  * peer: `Peer <server ip>`
+  * centralized server:  `./Server` 
+  * peer: `./Peer <server ip>`
 * local run
-  * centralized server:  `Server` 
-  * peer: `Peer -local <party num>`, where `part num` should be from 1 to the number of parties and should be unique for each party
+  * centralized server:  `./Server` 
+  * peer: `./Peer -local <party num>`, where `part num` should be from 1 to the number of parties and should be unique for each party
